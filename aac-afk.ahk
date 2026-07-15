@@ -101,6 +101,8 @@ global fightButton := uiDir . "\Fight.png"
 global focusButton := uiDir . "\Focus.png"
 global cantUpgrade := uiDir . "\cantUp.png"
 
+global GiantDone := uiDir . "\GiantDone.png"
+
 ; Master Class
 ; Warrior
 global warriorCard := classDir . "\Warrior" . "\WarriorCard.png"
@@ -474,11 +476,14 @@ MainMenu() {
     clicking(911, 735)
     Sleep(500)
 
-    loop 20 {
+    timeout := A_TickCount + 120000
+    loop {
         if (PixelSearch(&outX, &outY, 1014, 929, 1014, 940, 0xFFFFFF, 2) == 1) {
             Sleep(200)
             break
         }
+        if (A_TickCount > timeout)
+            break
     }
     Sleep(500)
 
@@ -543,6 +548,15 @@ MainGame() {
         return
     }
 
+    ; Ending time
+    else if ImageSearch(&x, &y, 95, 213, 843, 909, "*40 " . GiantDone) == 1 {
+        ;else if PixelSearch(&outX, &outY, 479, 248, 531, 440, 0xFDFDFD, 2) == 1 {
+        Sleep(500)
+        ShowToast("Ending Time")
+        currentState := "EndingTime"
+        return
+    }
+
     ; Ưu tiên 4: inInventory
     else if (PixelSearch(&outX, &outY, 137, 235, 138, 236, 0x646464, 5) == 1) {
         turnInFight := 1
@@ -556,15 +570,14 @@ MainGame() {
     ; Ưu tiên 5: chosing Card
     ; White in the ? symbol
     else if (PixelSearch(&outX, &outY, 1127, 227, 1141, 233, 0xFFFFFF, 5) == 1) {
+
         numRound := numRound + 1
+        ShowToast(numRound)
+
         turnInFight := 1
         numMana := 0
         ShowToast("It Choosing card")
         currentState := "choosingEvent"
-        return
-    }
-    else if PixelSearch(&outX, &outY, 479, 248, 531, 440, 0xFDFDFD, 2) == 1 {
-        currentState := "EndingTime"
         return
     }
 }
@@ -596,6 +609,7 @@ WarriorFight() {
     global BrutalSlashes, CrossSlash, OverpoweringSlash
 
     ; wait for our turn (wait for color white in Fight button)
+    timeout := A_TickCount + 120000
     loop {
         if PixelSearch(&outX, &outY, 677, 1047, 677, 1054, 0xFFFFFF, 2) == 1 {
             Sleep(500)
@@ -606,6 +620,8 @@ WarriorFight() {
             currentState := 'MainGame'
             break
         }
+        if (A_TickCount > timeout)
+            break
     }
 
     ; Check Mana when it our turn
@@ -759,15 +775,18 @@ inventory() {
     ;}
 
     ; NEW
+    timeout := A_TickCount + 120000
     loop {
-        if (ImageSearch(&x, &y, 1715, 876, 1773, 903, "*40 " . cantUpgrade) == 1) {
+        ; Click Invest
+        clicking(1632, 891)
+        Sleep(500)
+        if PixelSearch(&outX, &outY, 549, 492, 550, 493, 0xFFFFFF, 2) == 0 {
+            ;if (ImageSearch(&x, &y, 1715, 876, 1773, 903, "*40 " . cantUpgrade) == 1) {
+            ShowToast("cant up")
             Sleep(500)
             break
         }
         else {
-            ; Click Invest
-            clicking(1632, 891)
-            Sleep(500)
             ; uping
             switch classChoose {
                 case 1:
@@ -786,6 +805,8 @@ inventory() {
             clicking(952, 709)
             Sleep(1000)
         }
+        if (A_TickCount > timeout)
+            break
     }
 
     ShowToast("DONE UPGRADE")
@@ -798,6 +819,7 @@ inventory() {
     ; Move Mouse to Crafting table
     MouseMove(276, 348)
     MouseMove(277, 349)
+    clicking(277, 349)
 
     ShowToast("Crafting table menu")
     ; Crafting
@@ -809,12 +831,15 @@ inventory() {
     ; Ready
     clicking(962, 1026)
     Sleep(1000)
-    ;loop {
-    ;    if PixelSearch(&outX, &outY, 137, 235, 138, 236, 0x646464, 5) == 0 {
-    ;        Sleep(200)
-    ;        break
-    ;    }
-    ;}
+    timeout := A_TickCount + 120000
+    loop {
+        if PixelSearch(&outX, &outY, 137, 235, 138, 236, 0x646464, 5) == 0 {
+            Sleep(200)
+            break
+        }
+        if (A_TickCount > timeout)
+            break
+    }
     ;Sleep(1000)
     ;if PixelSearch(&outX, &outY, 1127, 227, 1141, 233, 0xFFFFFF, 5) == 1 {
     ;    Sleep(500)
@@ -824,64 +849,67 @@ inventory() {
     global currentState := "MainGame"
     return
 }
+
 WarriorCraft() {
     global numArmour, IronChestplate, IronLeggings, IronGreaves, IronHelmet, MetalScrap
 
     armourSequence := [IronChestplate, IronLeggings, IronGreaves, IronHelmet]
     ShowToast("Crafting")
 
-    ;scrollCount := 0 ; Counting bruh
+    timeout := A_TickCount + 120000
     loop {
-        if (numArmour >= armourSequence.Length) {
+        if (numArmour >= armourSequence.Length)
             return
-        }
 
         targetArmour := armourSequence[numArmour + 1]
-        if (ImageSearch(&x, &y, 64, 247, 509, 887, "*50 " . targetArmour) == 1) {
 
+        if (ImageSearch(&x, &y, 64, 247, 509, 887, "*20 " . targetArmour) == 1) {
             ShowToast("Found item")
 
-            MouseMove(x + 350, y + 6)
-            clicking(x + 350, y + 5)
+            if PixelSearch(&outX, &outY, x - 10, y - 10, x + 392, y + 34, 0x89FF77, 5) {
+                ; Thấy ảnh + thấy màu xanh → craft và wear
+                Sleep(500)
+                clicking(outX, outY)
+                Sleep(500)
 
-            Sleep(1000)
+                MouseMove(967, 292)
+                clicking(968, 293)
 
-            MouseMove(967, 292)
-            MouseMove(968, 293)
-            ShowToast("Found Wear")
-
-            ; Wear Armour
-            loop {
-                if PixelSearch(&outX, &outY, 1244, 624, 1245, 625, 0x323232, 2) == 1 {
-                    Sleep(300)
-                    break
+                loop {
+                    if PixelSearch(&outX, &outY, 1244, 624, 1245, 625, 0x323232, 2) == 1 {
+                        Sleep(300)
+                        break
+                    }
+                    else {
+                        Send("{WheelDown}")
+                        Sleep(200)
+                    }
+                    if (A_TickCount > timeout) {
+                        break
+                    }
                 }
-                else {
-                    Send("{WheelDown}")
-                    Sleep(200)
-                }
+
+                Sleep(500)
+                clicking(966, 604)
+                ShowToast("Wear Done")
+                Sleep(1000)
+
+                clicking(277, 349)
+                ShowToast("Continue Search")
+                numArmour++
+
             }
-
-            Sleep(500)
-            ; Wear arrmour
-            MouseMove(967, 605)
-            clicking(966, 604)
-
-            ShowToast("Wear Done")
-            Sleep(1000)
-            ; Move to armour crafting to continue scrolling
-            MouseMove(276, 348)
-            MouseMove(277, 349)
-            ShowToast("Continue Search")
-
-            numArmour++
-            continue
+            else {
+                ; Thấy ảnh nhưng không thấy màu xanh → scroll xuống tiếp
+                Send("{WheelDown}")
+                Sleep(250)
+            }
         }
         else {
-            if (PixelSearch(&outX, &outY, 495, 860, 496, 861, 0x323232, 5) == 1) {
-
-                ; MetalScrap can buy many time and it at the bottom
-                if (ImageSearch(&x, &y, 64, 247, 509, 887, "*40 " . MetalScrap) == 1) {
+            ; Không thấy ảnh → kiểm tra đã đến bottom chưa
+            if PixelSearch(&outX, &outY, 495, 860, 496, 861, 0x323232, 5) == 1 {
+                ; Đã đến bottom → mua MetalScrap nếu có, kéo lên và break
+                if ImageSearch(&x, &y, 64, 247, 509, 887, "*40 " . MetalScrap) == 1 {
                     clicking(x + 350, y + 5)
                     Sleep(1000)
                 }
@@ -890,23 +918,25 @@ WarriorCraft() {
                     if PixelSearch(&outX, &outY, 495, 277, 496, 278, 0x323232, 5) == 1 {
                         ShowToast("End Scroll")
                         Sleep(500)
-                        ;scrollCount := 0
                         break
                     }
                     else {
-                        ShowToast("Scrool up")
+                        ShowToast("Scroll up")
                         Send("{WheelUp}")
                         Sleep(100)
                     }
+                    if (A_TickCount > timeout) {
+                        break
+                    }
+
                 }
 
                 Sleep(1000)
                 break
             }
             else {
-
+                ; Chưa đến bottom, chưa thấy ảnh → scroll xuống
                 Send("{WheelDown}")
-                ;scrollCount++
                 Sleep(250)
             }
         }
@@ -919,13 +949,13 @@ EndingTime() {
 
     Sleep(500)
     clicking(1117, 666)
-
     ; in inventory
     loop {
         if PixelSearch(&outX, &outY, 137, 235, 138, 236, 0x646464, 5) == 1 {
             Sleep(200)
             break
         }
+
     }
 
     clicking(962, 1026)
@@ -936,6 +966,7 @@ EndingTime() {
             Sleep(200)
             break
         }
+
     }
 
     clicking(1364, 937)
@@ -945,8 +976,24 @@ EndingTime() {
             Sleep(200)
             break
         }
+
     }
 
+    ; Rest
+    loop {
+        if (PixelSearch(&outX, &outY, 1127, 227, 1141, 233, 0xFFFFFF, 5) == 0) {
+            Sleep(200)
+            break
+        }
+
+    }
+    loop {
+        if (PixelSearch(&outX, &outY, 990, 246, 994, 255, 0xFFFFFF, 2) == 1) {
+            Sleep(200)
+            break
+        }
+
+    }
     ; Rest
     clicking(1171, 667)
     Sleep(1000)
@@ -955,10 +1002,11 @@ EndingTime() {
 
     ; wait in fight
     loop {
-        if PixelSearch(&outX, &outY, 158, 754, 159, 755, 0x505050, 5) == 1 {
+        if PixelSearch(&outX, &outY, 677, 1047, 677, 1054, 0xFFFFFF, 2) == 1 {
             Sleep(200)
             break
         }
+
     }
 
     loop {
@@ -972,6 +1020,7 @@ EndingTime() {
                 clicking(1210, 1051)
             }
         }
+
     }
     Sleep(500)
     currentState := "MainGame"
@@ -1011,9 +1060,13 @@ ChoosingEvent() {
                 ;        sawIt++
                 ;    }
                 ;}
+                timeout := A_TickCount + 120000
                 loop {
                     if (PixelSearch(&outX, &outY, 1448, 242, 1464, 244, 0xFFFFFF) == 1) {
                         Sleep(200)
+                        break
+                    }
+                    if (A_TickCount > timeout) {
                         break
                     }
                 }
@@ -1026,10 +1079,16 @@ ChoosingEvent() {
                         Sleep(200)
                         break
                     }
+                    if (A_TickCount > timeout) {
+                        break
+                    }
                 }
                 loop {
                     if (PixelSearch(&outX, &outY, 1448, 242, 1464, 244, 0xFFFFFF) == 1) {
                         Sleep(200)
+                        break
+                    }
+                    if (A_TickCount > timeout) {
                         break
                     }
                 }
@@ -1053,12 +1112,27 @@ SameEventPick() {
         ; Short rest event
         clicking(1364, 937)
         Sleep(500)
-
+        timeout := A_TickCount + 120000
+        loop {
+            if (PixelSearch(&outX, &outY, 1127, 227, 1141, 233, 0xFFFFFF, 5) == 0) {
+                Sleep(200)
+                break
+            }
+            if (A_TickCount > timeout) {
+                break
+            }
+            Sleep(1000)
+        }
+        timeout := A_TickCount + 120000
         loop {
             if (PixelSearch(&outX, &outY, 990, 246, 994, 255, 0xFFFFFF, 2) == 1) {
                 Sleep(200)
                 break
             }
+            if (A_TickCount > timeout) {
+                break
+            }
+            Sleep(1000)
         }
         ; Rest
         clicking(1171, 667)
@@ -1069,40 +1143,37 @@ SameEventPick() {
         ; scavenge event
         clicking(536, 937)
         Sleep(2000)
+        timeout := A_TickCount + 120000
         switch classChoose {
-            case 1:
+            case 1, 2:
             {
                 ; middle option
+                timeout := A_TickCount + 120000
                 loop {
                     if (PixelSearch(&outX, &outY, 990, 246, 994, 255, 0xFFFFFF, 3) == 1) {
                         Sleep(500)
                         break
                     }
-                    Sleep(200) ; Tần số quét 200ms
-                }
-                clicking(1152, 736)
-                Sleep(2000)
-            }
-            case 2:
-            {
-                ; middle option
-                loop {
-                    if (PixelSearch(&outX, &outY, 990, 246, 994, 255, 0xFFFFFF, 3) == 1) {
-                        Sleep(500)
+                    if (A_TickCount > timeout) {
                         break
                     }
-                    Sleep(200) ; Tần số quét 200ms
+                    Sleep(500)
                 }
                 clicking(1152, 736)
                 Sleep(2000)
             }
+
         }
+        timeout := A_TickCount + 120000
         loop {
             if (PixelSearch(&outX, &outY, 990, 246, 994, 255, 0xFFFFFF, 3) == 1) {
                 Sleep(500)
                 break
             }
-            Sleep(200) ; Tần số quét 200ms
+            if (A_TickCount > timeout) {
+                break
+            }
+            Sleep(500)
         }
         Sleep(1000)
 
