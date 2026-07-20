@@ -117,6 +117,110 @@ global BrutalSlashes := classDir . "\Warrior" . "\BrutalSlashes.png"
 global CrossSlash := classDir . "\Warrior" . "\CrossSlash.png"
 global OverpoweringSlash := classDir . "\Warrior" . "\OverpoweringSlash.png"
 
+; Raw file
+global GITHUB_RAW := "https://raw.githubusercontent.com/WaterKansuza/AFK-An-Average-Campaign/main/"
+
+global realVersion := GITHUB_RAW . "version.txt"
+
+global zipPath := GITHUB_RAW . "assets.zip"
+global zipFile := scriptDir . "\assets_temp.zip"
+
+; CHANGE THIS IF UPDATE
+global localVer := "3.0.0"
+
+if !DirExist(assetsDir) {
+    Download(zipPath, zipFile)
+    ExtractAndClean(zipFile, assetsDir)
+}
+
+remoteVer := Trim(FetchText(realVersion), " `n`r")
+if (remoteVer = "") {
+    MsgBox("Không thể kết nối để kiểm tra update.", "Lỗi", "Iconi")
+} else if (localVer != remoteVer) {
+    result := MsgBox(
+        "Có phiên bản mới: " remoteVer "`nPhiên bản hiện tại: " localVer "`n`nCập nhật ngay?",
+        "Update Available",
+        "YesNo Icon?"
+    )
+    if (result = "Yes")
+        DoUpdate()
+}
+
+; AHK tạo file .ps1 tạm, chạy, rồi ps1 tự xóa
+ExtractAndClean(srcZip, destDir) {
+    ps1Path := A_Temp . "\ahk_extractor.ps1"
+
+    script := "
+    (
+    $zip  = '" srcZip "'
+    $dest = '" destDir "'
+
+    if (Test-Path $dest) { Remove-Item $dest -Recurse -Force }
+    New-Item -ItemType Directory -Path $dest | Out-Null
+    Expand-Archive -Path $zip -DestinationPath $dest -Force
+    Remove-Item $zip -Force
+
+    # Tự xóa file ps1 này
+    Remove-Item $MyInvocation.MyCommand.Path -Force
+    )"
+
+    FileOpen(ps1Path, "w").Write(script)
+
+    ; -ExecutionPolicy Bypass để không bị chặn
+    RunWait('powershell -NoProfile -ExecutionPolicy Bypass -File "' . ps1Path . '"', , "Hide")
+}
+
+FetchText(url) {
+    try {
+        req := ComObject("WinHttp.WinHttpRequest.5.1")
+        req.Open("GET", url, false)
+        req.SetTimeouts(5000, 5000, 10000, 10000)
+        req.Send()
+        if (req.Status = 200)
+            return req.ResponseText
+    }
+    return ""
+}
+
+DoUpdate() {
+    global GITHUB_RAW, scriptDir, assetsDir, zipPath, zipFile
+
+    ; ── 1. Xóa assets cũ và tải lại toàn bộ ─────────────────
+    try {
+        Download(zipPath, zipFile)
+        ExtractAndClean(zipFile, assetsDir)  ; tự xóa zip + ps1 sau khi xong
+    } catch as e {
+        MsgBox("Lỗi tải assets: " . e.Message, "Lỗi", "Iconx")
+        return
+    }
+
+    ; ── 2. Tải exe mới ───────────────────────────────────────
+    tmpExe := scriptDir . "\app_new.exe"
+    try {
+        Download(GITHUB_RAW . "releases/aac-afk.exe", tmpExe)
+    } catch as e {
+        MsgBox("Lỗi tải bản cập nhật: " . e.Message, "Lỗi", "Iconx")
+        return
+    }
+
+    ; ── 3. Batch thay exe sau khi app tắt ────────────────────
+    batPath := scriptDir . "\updater.bat"
+    oldExe := A_ScriptFullPath
+
+    batch := "@echo off`n"
+        . ":wait`n"
+        . 'tasklist | find "' . A_ScriptName . '" >nul 2>&1`n'
+        . 'move /y "' . tmpExe . '" "' . oldExe . '"' . "`n"
+        . 'start "" "' . oldExe . '"' . "`n"
+        . 'del "%~f0"'
+
+    FileOpen(batPath, "w").Write(batch)
+
+    MsgBox("Tải xong! App sẽ khởi động lại.", "Update", "Iconi T2")
+    Run(batPath)
+    ExitApp()
+}
+
 global generalSetting := Map(
     "isAlwaysOnTop", false,
     "selectedClass", 1,
