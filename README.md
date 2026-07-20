@@ -1,7 +1,7 @@
 # AFK-An-Average-Campaign
 This is an automatic farming bot for game An Average Campaign in Roblox
-<h1>DISCLAIMER!</h1>
-<p>I still dont know how to make exe to download all the file it need and update so beware</p>
+<h1>(NOT) DISCLAIMER!</h1>
+<p>I still dont know how to make exe to download all the file it need and update so beware (I CAN DO IT NOW)</p>
 <img width="705" height="59" alt="image" src="https://github.com/user-attachments/assets/69205409-c771-4a5c-bea4-c8e07f6be92f" />
 <p>You have to download the .rar file and extract it</p>
 <h2>Macro UI</h2>
